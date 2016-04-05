@@ -168,6 +168,7 @@ save mrInit_params params   % stash the params in case we crash
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isfield(params,'functionals') && ~isempty(params.functionals)
+    if ischar(params.functionals), params.functionals = {params.functionals}; end
     func = mrLoadHeader(params.functionals{1});
     
     for scan = 1:length(params.functionals)
@@ -185,6 +186,11 @@ if isfield(params,'functionals') && ~isempty(params.functionals)
         %local func struct.
         tS = niftiRead(func.path);
         tS = niftiApplyAndCreateXform(tS,'Inplane');
+        
+        %Store the orientation of the functional data. We will need the
+        %anatomical Inplane to have the same orientation.
+        [~, func.orientation] = niftiCreateXform(tS,'Inplane');
+        
         %Need to move over:
         %Data
         func.data = niftiGet(tS,'Data');
@@ -223,7 +229,14 @@ fprintf('[%s]: Finished initializing mrVista session. \t(%s)\n', ...
     mfilename, datestr(now));
 
 %%%%%%%%%%%%%%%%%%%%%%%
-% (5)  pre-processing %
+% (3)  VOLUME anatomy %
+%%%%%%%%%%%%%%%%%%%%%%%
+if isfield(params,'vAnatomy') && ~isempty(params.vAnatomy)
+    setVAnatomyPath(params.vAnatomy);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% (4)  pre-processing %
 %%%%%%%%%%%%%%%%%%%%%%%
 % update dataTYPES as needed.
 
@@ -246,7 +259,11 @@ end
 
 % slice timing correction
 if params.sliceTimingCorrection==1
-    INPLANE{1} = AdjustSliceTiming(INPLANE{1}, 0);
+    if isfield(params, 'sliceOrder') 
+        mrSESSION = sessionSet(mrSESSION, 'sliceorder', params.sliceOrder);
+        saveSession;
+    end
+    INPLANE{1} = AdjustSliceTiming(INPLANE{1}, 1:length(sessionGet(mrSESSION, 'functionals')));
     INPLANE{1} = selectDataType(INPLANE{1}, 'Timed');
 end
 
@@ -269,7 +286,6 @@ if params.motionComp > 1
                 params.motionCompRefScan, ...
                 params.motionCompRefFrame);
             INPLANE{1} = selectDataType(INPLANE{1}, 'MotionComp');
-            
         case 4, % both between and within scans
             motionCompNestaresWithin1st(INPLANE{1}, [], params.motionCompRefScan, params.motionCompRefFrame);
             mcdtName=['MotionComp_RefScan' num2str(params.motionCompRefScan)];
@@ -344,17 +360,20 @@ if checkfields(mr, 'info', 'date'), f.date = mr.info.date; end
 if checkfields(mr, 'info', 'time'), f.time = mr.info.time; end
 
 f.junkFirstFrames = 0; %This always appears to be 0. perhaps remove it?
-if mr.keepFrames(scan,2) == -1
-    remainingFrames = mr.dims(4);
+
+if mr.keepFrames(scan,2) == -1, 
+    % if 2nd column of keepframes is -1, keep all frames after drop frames
+    nFrames = mr.dims(4) - mr.keepFrames(scan,1);   
 else
-    remainingFrames = mr.keepFrames(scan,2);
-end %if
-totalDroppedFrames = (mr.dims(4) - remainingFrames) + mr.keepFrames(scan,1);
-f.nFrames = mr.dims(4) - totalDroppedFrames;
-f.slices =  1:mr.dims(3);
-f.fullSize = mr.dims(1:2);
-f.cropSize = mr.dims(1:2);
-f.crop = [1 1; mr.dims(1:2)];
+    % if 2nd column of keepframes is +n, keep n frames after drop frames
+    nFrames = mr.keepFrames(scan,2); 
+end
+    
+f.nFrames   = nFrames;
+f.slices    =  1:mr.dims(3);
+f.fullSize  = mr.dims(1:2);
+f.cropSize  = mr.dims(1:2);
+f.crop      = [1 1; mr.dims(1:2)];
 f.voxelSize = mr.voxelSize(1:3);
 f.effectiveResolution = mr.voxelSize(1:3);
 f.keepFrames = mr.keepFrames; %Keep Frames will now be udpated in both mrSESSION and dataTYPES
@@ -366,7 +385,7 @@ f.reconParams = mr.hdr;
 
 if scan==1
     mrSESSION = sessionSet(mrSESSION, 'Functionals', f);
-    %mrSESSION.functionals = f;
+    mrSESSION = sessionSet(mrSESSION, 'Functional Orientation', mr.orientation);
 else
     mrSESSION = sessionSet(mrSESSION, 'Functionals', ...
         mergeStructures(sessionGet(mrSESSION, 'Functionals', scan-1), f), scan);
@@ -407,16 +426,16 @@ return
 % /-----------------------------------------------------------------/ %
 function params = scanParamsDefaults(mrSESSION, scan, annotation)
 % Default scan parameters for a new scan.
-params.annotation = annotation;
-params.nFrames = mrSESSION.functionals(scan).nFrames;
-params.framePeriod = mrSESSION.functionals(scan).framePeriod;
-params.slices = mrSESSION.functionals(scan).slices;
-params.cropSize = mrSESSION.functionals(scan).cropSize;
-params.PfileName = mrSESSION.functionals(scan).PfileName;
-params.inplanePath = mrSESSION.functionals(scan).PfileName;
-params.keepFrames = mrSESSION.functionals(scan).keepFrames;
-params.parfile = '';
-params.scanGroup = sprintf('Original: %i',scan);
+params.annotation   = annotation;
+params.nFrames      = mrSESSION.functionals(scan).nFrames;
+params.framePeriod  = mrSESSION.functionals(scan).framePeriod;
+params.slices       = mrSESSION.functionals(scan).slices;
+params.cropSize     = mrSESSION.functionals(scan).cropSize;
+params.PfileName    = mrSESSION.functionals(scan).PfileName;
+params.inplanePath  = mrSESSION.functionals(scan).PfileName;
+params.keepFrames   = mrSESSION.functionals(scan).keepFrames;
+params.parfile      = '';
+params.scanGroup            = sprintf('Original: %i',scan);
 return
 % /-----------------------------------------------------------------/ %
 
@@ -425,11 +444,11 @@ return
 % /-----------------------------------------------------------------/ %
 function params = blockedAnalysisDefaults
 % Default values for the blocked analyses.
-params.blockedAnalysis = 1;
-params.detrend = 1;
-params.inhomoCorrect = 1;
+params.blockedAnalysis       = 1;
+params.detrend               = 1;
+params.inhomoCorrect         = 1;
 params.temporalNormalization = 0;
-params.nCycles = 6;
+params.nCycles               = 6;
 return
 % /-----------------------------------------------------------------/ %
 

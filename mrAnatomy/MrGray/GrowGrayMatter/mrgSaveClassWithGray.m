@@ -25,12 +25,12 @@ end
 
 % left hemisphere
 class = readClassFile(classNi,0,0,'left');
-[nodes,edges,classData] = mrgGrowGray(class,nGrayLayers);
+[~,~,classData] = mrgGrowGray(class,nGrayLayers);
 lGM = classData.data==classData.type.gray;
 
 % right hemisphere
 class = readClassFile(classNi,0,0,'right');
-[nodes,edges,classData] = mrgGrowGray(class,nGrayLayers);
+[~,~,classData] = mrgGrowGray(class,nGrayLayers);
 rGM = classData.data==classData.type.gray;
 
 % you may need to flip some dimensions to get the correct orientation

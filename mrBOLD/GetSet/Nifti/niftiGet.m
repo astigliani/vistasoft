@@ -116,7 +116,12 @@ switch param
         end
         
     case 'pixdim'
-        if isfield(ni, 'pixdim'), val = ni.pixdim;
+        if isfield(ni, 'pixdim'), 
+            val = ni.pixdim;
+            % if time untis are ms, convert to seconds
+            if isfield(ni, 'time_units') && strcmp(ni.time_units, 'msec') && length(val) >= 4
+                val(4) = val(4)/1000; 
+            end                
         else
             warning('vista:niftiError', 'No pixdim information found in nifti. Returning empty');
             val = [];
@@ -179,6 +184,15 @@ switch param
             %Now we need to calculate voxelSize
             val = prod(niftiGet(ni,'Pixdim'));
         end
+        
+    case {'params','scanparams','descrip','description'}
+        if isfield(ni,'descrip') 
+            val = niftiGetParamsFromDescrip(ni);
+        else
+            warning('vista:niftiError','Descrip field does not exist');
+            val = [];
+        end
+            
         
     otherwise
          error('Unknown parameter %s\n',param);       

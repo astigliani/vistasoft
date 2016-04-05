@@ -18,6 +18,7 @@ if isempty(DictViewSplit)
     DictViewSplit('anatomycurrentslice') = 'anatomy';
     DictViewSplit('anatomymap') =  'anatomy';
     DictViewSplit('anatomynifti') =  'anatomy';
+    DictViewSplit('inplaneorientation') =  'anatomy';
     DictViewSplit('anatsize') =  'anatomy';
     DictViewSplit('anatsizexyz') =  'anatomy';
     DictViewSplit('anatslicedim') =  'anatomy';
@@ -34,6 +35,7 @@ if isempty(DictViewSplit)
     DictViewSplit('cmap') =  'colorbar';
     DictViewSplit('cmapcolor') =  'colorbar';
     DictViewSplit('cmapgrayscale') =  'colorbar';
+    DictViewSplit('cmapmode') =  'colorbar';
     DictViewSplit('twparams') =  'colorbar';
     DictViewSplit('analysisdomain') =  'em';
     DictViewSplit('datavalindex') =  'em';
@@ -66,7 +68,6 @@ if isempty(DictViewSplit)
     DictViewSplit('recomputev2gmap') =  'mesh';
     DictViewSplit('rightclassfile') =  'mesh';
     DictViewSplit('rightgrayfile') =  'mesh';
-    DictViewSplit('framestouse') =  'retinotopy';
     DictViewSplit('rmcurrent') =  'retinotopy';
     DictViewSplit('rmfile') =  'retinotopy';
     DictViewSplit('rmhrf') =  'retinotopy';
@@ -87,6 +88,7 @@ if isempty(DictViewSplit)
     DictViewSplit('roiindices') =  'roi';
     DictViewSplit('roimodified') =  'roi';
     DictViewSplit('roiname') =  'roi';
+    DictViewSplit('roicomments') =  'roi';    
     DictViewSplit('roioptions') =  'roi';
     DictViewSplit('rois') =  'roi';
     DictViewSplit('roistodisplay') =  'roi';
@@ -116,7 +118,6 @@ if isempty(DictViewSplit)
     DictViewSplit('datasize') =  'timeseries';
     DictViewSplit('dim') =  'timeseries';
     DictViewSplit('functionalslicedim') = 'timeseries';
-    DictViewSplit('ncycles') =  'timeseries';
     DictViewSplit('nframes') =  'timeseries';
     DictViewSplit('tr') =  'timeseries';
     DictViewSplit('tseries') =  'timeseries';
@@ -137,6 +138,8 @@ if isempty(DictViewSplit)
     DictViewSplit('scanco') =  'travelingwave';
     DictViewSplit('scanph') =  'travelingwave';
     DictViewSplit('spatialgrad') =  'travelingwave';
+    DictViewSplit('framestouse') =  'travelingwave';
+    DictViewSplit('ncycles') =  'travelingwave';    
     DictViewSplit('amplitudemode') =  'ui';
     DictViewSplit('anatomymode') =  'ui';
     DictViewSplit('cbarrange') = 'ui';

@@ -20,6 +20,13 @@ function [vw, s] = openMontageWindow
 % Make sure the global variables exist
 mrGlobals
 
+% Test to make sure that the session has been updated:
+if ~strcmp(sessionGet(mrSESSION,'Version'),'2.1')
+    %The session has not been updated to include the new functional data
+    %Let's warn the user
+    error('This session has not been upgraded to the most recent version. Please run mrInit_sessionMigration to update your session.');
+end %if
+
 disp('Initializing Inplane view')
 
 % s is the index of the new inplane structure.
@@ -154,14 +161,9 @@ INPLANE{s} = eventMenu(INPLANE{s});
 INPLANE{s} = helpMenu(INPLANE{s}, 'Inplane');
 
 % go ahead and load the anatomicals
+INPLANE{s} = viewSet(INPLANE{s}, 'Inplane orientation', sessionGet(mrSESSION,'functional orientation'));
 INPLANE{s} = loadAnat(INPLANE{s}, sessionGet(mrSESSION,'Inplane Path'));
 
-% Test to make sure that the session has been updated:
-if ~strcmp(sessionGet(mrSESSION,'Version'),'2.1')
-    %The session has not been updated to include the new functional data
-    %Let's warn the user
-    error('This session has not been upgraded to the most recent version. Please run mrInit_sessionMigration to update your session.');
-end %if
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % Add Annotation String %

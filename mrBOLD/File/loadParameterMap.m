@@ -46,7 +46,7 @@ end
 [pathstr,name,extension] = fileparts(mapPath);
 
 if strcmp(extension, '.mat')
-    % check4File only works with .mat files: 
+    % check4File only works with .mat files:
     if ~check4File(mapPath)
         warning(['No ',mapPath,' file']) %#ok<WNTAG>
         ok = 0;
@@ -54,12 +54,12 @@ if strcmp(extension, '.mat')
     end
     
 else
-    % We still need to check whether the file exists: 
+    % We still need to check whether the file exists:
     if ~exist(mapPath, 'file')
         warning(['No ',mapPath,' file']) %#ok<WNTAG>
         ok = 0;
         return
-    end     
+    end
 end
 
 verbose = prefsVerboseCheck;
@@ -69,21 +69,29 @@ end
 
 % If it's a nifti file:
 if strcmp(extension, '.nii') || strcmp(extension,'.gz')
-    % We'll need to generate the mat file with the map in it:
+    
+    % Read in the nifti
     nii = niftiRead(mapPath);
-    vw.map = {nii.data}; % Pack it into a cell-array
+    
+    % Apply the canonical xform for nifti data
+    nii = niftiApplyAndCreateXform(nii,'Inplane');
+    
+    % Set the data into the view structure
+    mapData = {niftiGet(nii,'Data')};    
+    vw = viewSet(vw, 'map', mapData);
+    
     % To deal with with the double-extension in .nii.gz files
-    dot_idx = find(name=='.', 1); 
+    dot_idx = find(name=='.', 1);
     if ~isempty(dot_idx), name = name(1:find(name=='.')-1); end
     
-    % It will be named according to the name of the nifti file: 
-    vw.mapName = name;
+    % It will be named according to the name of the nifti file:
+    vw = viewSet(vw, 'map Name', name);
     
     % Save it in the right place for the DATATYPE:
     saveParameterMap(vw)
-
-    mapPath = fullfile(dataDir(vw),[vw.mapName,'.mat']);
     
+    mapPath = fullfile(dataDir(vw),[vw.mapName,'.mat']);
+
 end
 
 load(mapPath);
